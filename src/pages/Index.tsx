@@ -2,13 +2,15 @@ import { useState } from "react";
 import { GameSelection } from "./GameSelection";
 import { CharacterCreation } from "./CharacterCreation";
 import { GameDashboard } from "./GameDashboard";
+import { Login } from "./Login";
 
-type AppState = 'selection' | 'character-creation' | 'game';
+type AppState = 'login' | 'selection' | 'character-creation' | 'game';
 
 const Index = () => {
-  const [appState, setAppState] = useState<AppState>('selection');
+  const [appState, setAppState] = useState<AppState>('login');
   const [userRole, setUserRole] = useState<'gm' | 'player' | null>(null);
   const [roomCode, setRoomCode] = useState<string>("");
+  const [user, setUser] = useState<any>(null);
 
   const handleRoleSelection = (role: 'gm' | 'player', code?: string) => {
     setUserRole(role);
@@ -37,7 +39,16 @@ const Index = () => {
     setRoomCode("");
   };
 
+  const handleLogin = (userData: any) => {
+    setUser(userData);
+    setUserRole(userData.role);
+    setAppState('selection');
+  };
+
   switch (appState) {
+    case 'login':
+      return <Login onLogin={handleLogin} />;
+    
     case 'selection':
       return <GameSelection onSelectRole={handleRoleSelection} />;
     

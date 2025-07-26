@@ -8,6 +8,9 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { DiceRoller } from "@/components/DiceRoller";
 import { CharacterCard } from "@/components/CharacterCard";
 import { SpellCard } from "@/components/SpellCard";
+import { Map2D } from "@/components/Map2D";
+import { Map3D } from "@/components/Map3D";
+import { Inventory } from "@/components/Inventory";
 import { 
   Crown, 
   Users, 
@@ -32,6 +35,7 @@ export const GameDashboard = ({ role, roomCode, onLeaveGame }: GameDashboardProp
   const [activeTab, setActiveTab] = useState("overview");
   const [chatMessage, setChatMessage] = useState("");
   const [selectedCharacter, setSelectedCharacter] = useState<any>(null);
+  const [activeMapMode, setActiveMapMode] = useState<'2d' | '3d'>('2d');
 
   // Mock data
   const mockCharacters = [
@@ -149,13 +153,14 @@ export const GameDashboard = ({ role, roomCode, onLeaveGame }: GameDashboardProp
       {/* Main Content */}
       <div className="container mx-auto px-4 py-6">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-6 bg-card/50 backdrop-blur-sm">
+          <TabsList className="grid w-full grid-cols-7 bg-card/50 backdrop-blur-sm">
             <TabsTrigger value="overview">Visão Geral</TabsTrigger>
             <TabsTrigger value="characters">Personagens</TabsTrigger>
             <TabsTrigger value="spells">Magias</TabsTrigger>
             <TabsTrigger value="map">Mapa</TabsTrigger>
             <TabsTrigger value="chat">Chat</TabsTrigger>
             <TabsTrigger value="dice">Dados</TabsTrigger>
+            <TabsTrigger value="inventory">Inventário</TabsTrigger>
           </TabsList>
 
           {/* Overview Tab */}
@@ -278,20 +283,31 @@ export const GameDashboard = ({ role, roomCode, onLeaveGame }: GameDashboardProp
 
           {/* Map Tab */}
           <TabsContent value="map" className="space-y-6">
-            <Card className="bg-gradient-card border-primary/30 shadow-card">
-              <CardHeader>
-                <CardTitle className="text-foreground">Mapa Interativo</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="aspect-video bg-muted/30 rounded-lg border border-border flex items-center justify-center">
-                  <div className="text-center">
-                    <Map className="w-24 h-24 text-muted-foreground mx-auto mb-4" />
-                    <h3 className="text-xl font-semibold text-foreground mb-2">Mapa Avançado</h3>
-                    <p className="text-muted-foreground">Sistema de mapa 2D/3D interativo será implementado aqui</p>
-                  </div>
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <h2 className="text-2xl font-bold text-foreground">Sistema de Mapas</h2>
+                <div className="flex gap-2">
+                  <Button 
+                    variant={activeMapMode === '2d' ? 'default' : 'outline'}
+                    onClick={() => setActiveMapMode('2d')}
+                  >
+                    Mapa 2D
+                  </Button>
+                  <Button 
+                    variant={activeMapMode === '3d' ? 'default' : 'outline'}
+                    onClick={() => setActiveMapMode('3d')}
+                  >
+                    Mapa 3D
+                  </Button>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+              
+              {activeMapMode === '2d' ? (
+                <Map2D role={role} />
+              ) : (
+                <Map3D role={role} />
+              )}
+            </div>
           </TabsContent>
 
           {/* Chat Tab */}
@@ -338,10 +354,15 @@ export const GameDashboard = ({ role, roomCode, onLeaveGame }: GameDashboardProp
           </TabsContent>
 
           {/* Dice Tab */}
-          <TabsContent value="dice" className="space-y-6">
+            <TabsContent value="dice" className="space-y-6">
             <div className="max-w-2xl mx-auto">
               <DiceRoller />
             </div>
+          </TabsContent>
+
+          {/* Inventory Tab */}
+          <TabsContent value="inventory" className="space-y-6">
+            <Inventory role={role} />
           </TabsContent>
         </Tabs>
       </div>
