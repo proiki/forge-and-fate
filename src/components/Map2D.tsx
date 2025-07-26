@@ -9,9 +9,17 @@ import { Plus, Move, Eye, Users, Settings } from "lucide-react";
 import tavernMap from "@/assets/tavern-map.jpg";
 import forestMap from "@/assets/forest-map.jpg";
 import dungeonMap from "@/assets/dungeon-map.jpg";
+import volcanicForgeMap from "@/assets/volcanic-forge-map.jpg";
+import medievalTownMap from "@/assets/medieval-town-map.jpg";
+import mountainCaveMap from "@/assets/mountain-cave-map.jpg";
+import castleMap from "@/assets/castle-map.jpg";
 import weaponsIcons from "@/assets/weapons-icons.png";
+import weaponsCollection from "@/assets/weapons-collection.jpg";
 import npcsCollection from "@/assets/npcs-collection.png";
 import objectsCollection from "@/assets/objects-collection.png";
+import toolsEquipment from "@/assets/tools-equipment.png";
+import armorCollection from "@/assets/armor-collection.jpg";
+import monstersCollection from "@/assets/monsters-collection.jpg";
 
 interface Map2DProps {
   role: 'gm' | 'player';
@@ -20,7 +28,11 @@ interface Map2DProps {
 const mapTemplates = [
   { id: 'tavern', name: 'Taverna do Dragão', image: tavernMap, description: 'Taverna aconchegante para início de aventuras' },
   { id: 'forest', name: 'Floresta Sombria', image: forestMap, description: 'Floresta misteriosa cheia de perigos' },
-  { id: 'dungeon', name: 'Masmorras Antigas', image: dungeonMap, description: 'Calabouços escuros com tesouros escondidos' }
+  { id: 'dungeon', name: 'Masmorras Antigas', image: dungeonMap, description: 'Calabouços escuros com tesouros escondidos' },
+  { id: 'volcanic', name: 'Forja Vulcânica', image: volcanicForgeMap, description: 'Forja ardente nas profundezas do vulcão' },
+  { id: 'town', name: 'Cidade Medieval', image: medievalTownMap, description: 'Cidade movimentada com mercadores e aventureiros' },
+  { id: 'cave', name: 'Cavernas da Montanha', image: mountainCaveMap, description: 'Cavernas perigosas nas altas montanhas' },
+  { id: 'castle', name: 'Castelo Sombrio', image: castleMap, description: 'Castelo antigo cheio de mistérios e perigos' }
 ];
 
 const gameAssets = {
@@ -28,7 +40,27 @@ const gameAssets = {
     { id: 'sword', name: 'Espada Longa', type: 'weapon', damage: '1d8', icon: weaponsIcons },
     { id: 'bow', name: 'Arco Élfico', type: 'weapon', damage: '1d6', range: '150m', icon: weaponsIcons },
     { id: 'staff', name: 'Cajado Arcano', type: 'weapon', damage: '1d4', magic: '+2', icon: weaponsIcons },
-    { id: 'axe', name: 'Machado de Guerra', type: 'weapon', damage: '1d10', icon: weaponsIcons }
+    { id: 'axe', name: 'Machado de Guerra', type: 'weapon', damage: '1d10', icon: weaponsIcons },
+    { id: 'dagger', name: 'Adaga Envenenada', type: 'weapon', damage: '1d4', special: 'Veneno', icon: weaponsCollection },
+    { id: 'hammer', name: 'Martelo de Thor', type: 'weapon', damage: '2d6', special: 'Raio', icon: weaponsCollection }
+  ],
+  armor: [
+    { id: 'leather', name: 'Armadura de Couro', type: 'armor', defense: '+2', weight: 'Leve', icon: armorCollection },
+    { id: 'chainmail', name: 'Cota de Malha', type: 'armor', defense: '+4', weight: 'Média', icon: armorCollection },
+    { id: 'plate', name: 'Armadura de Placas', type: 'armor', defense: '+6', weight: 'Pesada', icon: armorCollection },
+    { id: 'robe', name: 'Vestes Mágicas', type: 'armor', defense: '+1', magic: '+3', icon: armorCollection }
+  ],
+  tools: [
+    { id: 'pickaxe', name: 'Picareta', type: 'tool', use: 'Mineração', durability: 100, icon: toolsEquipment },
+    { id: 'rope', name: 'Corda (15m)', type: 'tool', use: 'Escalada', weight: '2kg', icon: toolsEquipment },
+    { id: 'lantern', name: 'Lanterna', type: 'tool', use: 'Iluminação', fuel: '6h', icon: toolsEquipment },
+    { id: 'lockpick', name: 'Gazuas', type: 'tool', use: 'Abrir fechaduras', skill: 'Furtividade', icon: toolsEquipment }
+  ],
+  monsters: [
+    { id: 'goblin', name: 'Goblin', type: 'monster', hp: 15, level: 1, attack: 5, icon: monstersCollection },
+    { id: 'orc', name: 'Orc Guerreiro', type: 'monster', hp: 35, level: 3, attack: 8, icon: monstersCollection },
+    { id: 'troll', name: 'Troll das Cavernas', type: 'monster', hp: 80, level: 6, attack: 12, icon: monstersCollection },
+    { id: 'dragon', name: 'Dragão Jovem', type: 'monster', hp: 150, level: 10, attack: 20, icon: monstersCollection }
   ],
   npcs: [
     { id: 'wizard', name: 'Mago Sábio', type: 'npc', hp: 50, level: 8, icon: npcsCollection },
@@ -244,6 +276,11 @@ export const Map2D = ({ role }: Map2DProps) => {
                 <Tabs defaultValue="weapons" className="space-y-4">
                   <TabsList className="grid w-full grid-cols-3">
                     <TabsTrigger value="weapons">Armas</TabsTrigger>
+                    <TabsTrigger value="armor">Armaduras</TabsTrigger>
+                    <TabsTrigger value="tools">Ferramentas</TabsTrigger>
+                  </TabsList>
+                  <TabsList className="grid w-full grid-cols-3 mt-2">
+                    <TabsTrigger value="monsters">Monstros</TabsTrigger>
                     <TabsTrigger value="npcs">NPCs</TabsTrigger>
                     <TabsTrigger value="objects">Objetos</TabsTrigger>
                   </TabsList>
@@ -263,6 +300,75 @@ export const Map2D = ({ role }: Map2DProps) => {
                             <div className="text-sm font-medium text-foreground">{weapon.name}</div>
                             <div className="text-xs text-muted-foreground">
                               Dano: {weapon.damage} {weapon.range && `• Alcance: ${weapon.range}`}
+                              {weapon.special && `• ${weapon.special}`}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </TabsContent>
+
+                  <TabsContent value="armor" className="space-y-2">
+                    {gameAssets.armor.map((armor) => (
+                      <div
+                        key={armor.id}
+                        className="p-2 border border-border rounded cursor-pointer hover:bg-muted/50 transition-colors"
+                        onClick={() => handleAddObject(armor)}
+                      >
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-8 bg-blue-500/20 rounded flex items-center justify-center">
+                            🛡️
+                          </div>
+                          <div>
+                            <div className="text-sm font-medium text-foreground">{armor.name}</div>
+                            <div className="text-xs text-muted-foreground">
+                              Defesa: {armor.defense} • {armor.weight}
+                              {armor.magic && ` • Magia: ${armor.magic}`}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </TabsContent>
+
+                  <TabsContent value="tools" className="space-y-2">
+                    {gameAssets.tools.map((tool) => (
+                      <div
+                        key={tool.id}
+                        className="p-2 border border-border rounded cursor-pointer hover:bg-muted/50 transition-colors"
+                        onClick={() => handleAddObject(tool)}
+                      >
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-8 bg-yellow-500/20 rounded flex items-center justify-center">
+                            🔧
+                          </div>
+                          <div>
+                            <div className="text-sm font-medium text-foreground">{tool.name}</div>
+                            <div className="text-xs text-muted-foreground">
+                              {tool.use} {tool.durability && `• Durabilidade: ${tool.durability}`}
+                              {tool.weight && `• ${tool.weight}`} {tool.fuel && `• ${tool.fuel}`}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </TabsContent>
+
+                  <TabsContent value="monsters" className="space-y-2">
+                    {gameAssets.monsters.map((monster) => (
+                      <div
+                        key={monster.id}
+                        className="p-2 border border-border rounded cursor-pointer hover:bg-muted/50 transition-colors"
+                        onClick={() => handleAddObject(monster)}
+                      >
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-8 bg-red-500/20 rounded flex items-center justify-center">
+                            👹
+                          </div>
+                          <div>
+                            <div className="text-sm font-medium text-foreground">{monster.name}</div>
+                            <div className="text-xs text-muted-foreground">
+                              HP: {monster.hp} • Level: {monster.level} • Ataque: {monster.attack}
                             </div>
                           </div>
                         </div>

@@ -8,6 +8,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { DiceRoller } from "@/components/DiceRoller";
 import { CharacterCard } from "@/components/CharacterCard";
 import { SpellCard } from "@/components/SpellCard";
+import { MonsterCard } from "@/components/MonsterCard";
 import { Map2D } from "@/components/Map2D";
 import { Map3D } from "@/components/Map3D";
 import { Inventory } from "@/components/Inventory";
@@ -94,6 +95,60 @@ export const GameDashboard = ({ role, roomCode, onLeaveGame }: GameDashboardProp
     }
   ];
 
+  const mockMonsters = [
+    {
+      id: "1",
+      name: "Goblin Ladrão",
+      type: "Humanoide",
+      level: 2,
+      hp: 25,
+      maxHp: 25,
+      attack: 8,
+      defense: 4,
+      speed: 12,
+      abilities: ["Furtividade", "Ataque Surpresa"],
+      weaknesses: ["Luz", "Barulho"],
+      resistances: ["Escuridão"],
+      description: "Um pequeno humanoide verde conhecido por sua astúcia e ganância.",
+      rarity: "common" as const,
+      icon: "👺"
+    },
+    {
+      id: "2",
+      name: "Orc Guerreiro",
+      type: "Humanoide",
+      level: 5,
+      hp: 65,
+      maxHp: 65,
+      attack: 15,
+      defense: 8,
+      speed: 8,
+      abilities: ["Fúria", "Intimidação"],
+      weaknesses: ["Magia", "Estratégia"],
+      resistances: ["Físico"],
+      description: "Um guerreiro brutal com força descomunal e sede de batalha.",
+      rarity: "rare" as const,
+      icon: "👹"
+    },
+    {
+      id: "3",
+      name: "Dragão Jovem",
+      type: "Dragão",
+      level: 12,
+      hp: 200,
+      maxHp: 200,
+      attack: 25,
+      defense: 18,
+      speed: 15,
+      abilities: ["Sopro de Fogo", "Voo", "Magia Arcana"],
+      weaknesses: ["Gelo", "Armas Dracônicas"],
+      resistances: ["Fogo", "Medo"],
+      description: "Um dragão em crescimento com poder devastador e inteligência superior.",
+      rarity: "legendary" as const,
+      icon: "🐉"
+    }
+  ];
+
   const chatMessages = [
     { id: 1, user: "GM", message: "Bem-vindos à Taverna do Dragão Dourado!", timestamp: "14:30", type: "system" },
     { id: 2, user: "Aragorn", message: "Vou investigar as pegadas suspeitas.", timestamp: "14:32", type: "player" },
@@ -153,10 +208,11 @@ export const GameDashboard = ({ role, roomCode, onLeaveGame }: GameDashboardProp
       {/* Main Content */}
       <div className="container mx-auto px-4 py-6">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-7 bg-card/50 backdrop-blur-sm">
+          <TabsList className="grid w-full grid-cols-8 bg-card/50 backdrop-blur-sm">
             <TabsTrigger value="overview">Visão Geral</TabsTrigger>
             <TabsTrigger value="characters">Personagens</TabsTrigger>
             <TabsTrigger value="spells">Magias</TabsTrigger>
+            <TabsTrigger value="monsters">Monstros</TabsTrigger>
             <TabsTrigger value="map">Mapa</TabsTrigger>
             <TabsTrigger value="chat">Chat</TabsTrigger>
             <TabsTrigger value="dice">Dados</TabsTrigger>
@@ -276,6 +332,33 @@ export const GameDashboard = ({ role, roomCode, onLeaveGame }: GameDashboardProp
                   spell={spell}
                   onCast={handleSpellCast}
                   onFuse={(spell) => toast.success(`Tentando fusão com ${spell.name}!`)}
+                />
+              ))}
+            </div>
+          </TabsContent>
+
+          {/* Monsters Tab */}
+          <TabsContent value="monsters" className="space-y-6">
+            <div className="flex items-center justify-between">
+              <h2 className="text-2xl font-bold text-foreground">
+                {role === 'gm' ? 'Bestiário - Controle de Monstros' : 'Monstros Encontrados'}
+              </h2>
+              {role === 'gm' && (
+                <Button variant="hero">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Adicionar Monstro
+                </Button>
+              )}
+            </div>
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {mockMonsters.map((monster) => (
+                <MonsterCard
+                  key={monster.id}
+                  monster={monster}
+                  isGM={role === 'gm'}
+                  onAttack={(monster) => toast.success(`${monster.name} atacou!`)}
+                  onDefeat={(monster) => toast.success(`${monster.name} foi derrotado!`)}
+                  onEdit={(monster) => toast.success(`Editando ${monster.name}`)}
                 />
               ))}
             </div>
