@@ -174,35 +174,47 @@ export const Map2D = ({ role }: Map2DProps) => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="min-h-screen bg-gradient-hero p-6 space-y-8">
       {/* Map Selection */}
-      <Card className="bg-gradient-card border-primary/30 shadow-card">
-        <CardHeader>
-          <CardTitle className="text-foreground flex items-center gap-2">
-            <Eye className="w-5 h-5 text-primary" />
-            Mapas Disponíveis
+      <Card className="bg-card/95 backdrop-blur-sm border-primary/20 shadow-epic">
+        <CardHeader className="pb-4">
+          <CardTitle className="text-foreground flex items-center gap-3 text-xl">
+            <div className="p-2 rounded-lg bg-primary/20">
+              <Eye className="w-6 h-6 text-primary" />
+            </div>
+            Mapas Épicos Disponíveis
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {mapTemplates.map((map) => (
               <div
                 key={map.id}
-                className={`cursor-pointer rounded-lg border-2 transition-all ${
+                className={`group cursor-pointer rounded-xl border-2 transition-epic overflow-hidden ${
                   selectedMap.id === map.id 
-                    ? 'border-primary shadow-lg' 
-                    : 'border-border hover:border-primary/50'
+                    ? 'border-primary shadow-glow bg-primary/5' 
+                    : 'border-border hover:border-primary/60 hover:shadow-lg hover:scale-105'
                 }`}
                 onClick={() => handleMapChange(map.id)}
               >
-                <img 
-                  src={map.image} 
-                  alt={map.name}
-                  className="w-full h-24 object-cover rounded-t-lg"
-                />
-                <div className="p-3">
-                  <h3 className="font-semibold text-sm text-foreground">{map.name}</h3>
-                  <p className="text-xs text-muted-foreground">{map.description}</p>
+                <div className="relative overflow-hidden">
+                  <img 
+                    src={map.image} 
+                    alt={map.name}
+                    className="w-full h-32 object-cover transition-epic group-hover:scale-110"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-background/80 to-transparent" />
+                  {selectedMap.id === map.id && (
+                    <div className="absolute top-2 right-2">
+                      <Badge className="bg-primary text-primary-foreground shadow-lg">
+                        Ativo
+                      </Badge>
+                    </div>
+                  )}
+                </div>
+                <div className="p-4 space-y-2">
+                  <h3 className="font-bold text-foreground text-sm leading-tight">{map.name}</h3>
+                  <p className="text-xs text-muted-foreground line-clamp-2">{map.description}</p>
                 </div>
               </div>
             ))}
@@ -210,56 +222,80 @@ export const Map2D = ({ role }: Map2DProps) => {
         </CardContent>
       </Card>
 
-      <div className="grid lg:grid-cols-4 gap-6">
+      <div className="grid lg:grid-cols-4 gap-8">
         {/* Canvas */}
         <div className="lg:col-span-3">
-          <Card className="bg-gradient-card border-primary/30 shadow-card">
-            <CardHeader>
+          <Card className="bg-card/95 backdrop-blur-sm border-primary/20 shadow-epic overflow-hidden">
+            <CardHeader className="bg-gradient-primary/10 border-b border-primary/20">
               <div className="flex items-center justify-between">
-                <CardTitle className="text-foreground flex items-center gap-2">
-                  <Settings className="w-5 h-5 text-primary" />
+                <CardTitle className="text-foreground flex items-center gap-3 text-xl">
+                  <div className="p-2 rounded-lg bg-primary/20">
+                    <Settings className="w-6 h-6 text-primary" />
+                  </div>
                   {selectedMap.name}
-                  <Badge className="bg-primary text-primary-foreground">
-                    {role === 'gm' ? 'Modo Mestre' : 'Modo Jogador'}
+                  <Badge className="bg-gradient-primary text-primary-foreground shadow-glow border-0">
+                    {role === 'gm' ? '⚡ Modo Mestre' : '🎭 Modo Jogador'}
                   </Badge>
                 </CardTitle>
                 {role === 'gm' && (
-                  <div className="flex gap-2">
+                  <div className="flex gap-3">
                     <Button
                       variant={selectedTool === 'select' ? 'default' : 'outline'}
                       size="sm"
+                      className={selectedTool === 'select' ? 'shadow-glow' : 'hover:shadow-lg'}
                       onClick={() => handleToolChange('select')}
                     >
-                      <Move className="w-4 h-4" />
+                      <Move className="w-4 h-4 mr-1" />
+                      Selecionar
                     </Button>
                     <Button
                       variant={selectedTool === 'add' ? 'default' : 'outline'}
                       size="sm"
+                      className={selectedTool === 'add' ? 'shadow-glow' : 'hover:shadow-lg'}
                       onClick={() => handleToolChange('add')}
                     >
-                      <Plus className="w-4 h-4" />
+                      <Plus className="w-4 h-4 mr-1" />
+                      Adicionar
                     </Button>
-                    <Button variant="destructive" size="sm" onClick={clearMap}>
-                      Limpar
+                    <Button 
+                      variant="destructive" 
+                      size="sm" 
+                      onClick={clearMap}
+                      className="hover:scale-105 transition-epic"
+                    >
+                      🗑️ Limpar
                     </Button>
                   </div>
                 )}
               </div>
             </CardHeader>
-            <CardContent>
-              <div className="border border-border rounded-lg overflow-hidden shadow-inner">
-                <canvas ref={canvasRef} className="max-w-full" />
+            <CardContent className="p-6">
+              <div className="border-2 border-primary/30 rounded-xl overflow-hidden shadow-card bg-gradient-to-br from-background/50 to-muted/20">
+                <canvas ref={canvasRef} className="max-w-full block" />
               </div>
-              <div className="mt-4 flex items-center gap-4">
-                <div className="flex items-center gap-2">
-                  <Users className="w-4 h-4 text-primary" />
-                  <span className="text-sm text-foreground">Jogadores Online:</span>
+              <div className="mt-6 p-4 rounded-lg bg-muted/30 border border-border">
+                <div className="flex items-center gap-4 flex-wrap">
+                  <div className="flex items-center gap-2">
+                    <div className="p-1 rounded bg-primary/20">
+                      <Users className="w-4 h-4 text-primary" />
+                    </div>
+                    <span className="text-sm font-medium text-foreground">Aventureiros Online:</span>
+                  </div>
+                  <div className="flex gap-2 flex-wrap">
+                    {playerPositions.map((player) => (
+                      <Badge 
+                        key={player.id} 
+                        className="shadow-lg border-0"
+                        style={{ 
+                          backgroundColor: player.color,
+                          color: '#ffffff'
+                        }}
+                      >
+                        🎭 {player.name}
+                      </Badge>
+                    ))}
+                  </div>
                 </div>
-                {playerPositions.map((player) => (
-                  <Badge key={player.id} style={{ backgroundColor: player.color }}>
-                    {player.name}
-                  </Badge>
-                ))}
               </div>
             </CardContent>
           </Card>
@@ -267,40 +303,47 @@ export const Map2D = ({ role }: Map2DProps) => {
 
         {/* Assets Panel */}
         {role === 'gm' && (
-          <div>
-            <Card className="bg-gradient-card border-primary/30 shadow-card">
-              <CardHeader>
-                <CardTitle className="text-foreground">Elementos do Jogo</CardTitle>
+          <div className="space-y-6">
+            <Card className="bg-card/95 backdrop-blur-sm border-primary/20 shadow-epic">
+              <CardHeader className="bg-gradient-primary/10 border-b border-primary/20">
+                <CardTitle className="text-foreground flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-primary/20">
+                    ⚔️
+                  </div>
+                  Arsenal Épico
+                </CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="p-4">
                 <Tabs defaultValue="weapons" className="space-y-4">
-                  <TabsList className="grid w-full grid-cols-3">
-                    <TabsTrigger value="weapons">Armas</TabsTrigger>
-                    <TabsTrigger value="armor">Armaduras</TabsTrigger>
-                    <TabsTrigger value="tools">Ferramentas</TabsTrigger>
+                  <TabsList className="grid w-full grid-cols-2 gap-1 bg-muted/50 p-1">
+                    <TabsTrigger value="weapons" className="text-xs">⚔️ Armas</TabsTrigger>
+                    <TabsTrigger value="armor" className="text-xs">🛡️ Armadura</TabsTrigger>
                   </TabsList>
-                  <TabsList className="grid w-full grid-cols-3 mt-2">
-                    <TabsTrigger value="monsters">Monstros</TabsTrigger>
-                    <TabsTrigger value="npcs">NPCs</TabsTrigger>
-                    <TabsTrigger value="objects">Objetos</TabsTrigger>
+                  <TabsList className="grid w-full grid-cols-2 gap-1 bg-muted/50 p-1 mt-2">
+                    <TabsTrigger value="tools" className="text-xs">🔧 Ferramentas</TabsTrigger>
+                    <TabsTrigger value="monsters" className="text-xs">👹 Monstros</TabsTrigger>
+                  </TabsList>
+                  <TabsList className="grid w-full grid-cols-2 gap-1 bg-muted/50 p-1 mt-2">
+                    <TabsTrigger value="npcs" className="text-xs">🧙 NPCs</TabsTrigger>
+                    <TabsTrigger value="objects" className="text-xs">📦 Objetos</TabsTrigger>
                   </TabsList>
 
-                  <TabsContent value="weapons" className="space-y-2">
+                  <TabsContent value="weapons" className="space-y-3 max-h-80 overflow-y-auto">
                     {gameAssets.weapons.map((weapon) => (
                       <div
                         key={weapon.id}
-                        className="p-2 border border-border rounded cursor-pointer hover:bg-muted/50 transition-colors"
+                        className="group p-3 border border-border rounded-lg cursor-pointer hover:bg-primary/10 hover:border-primary/50 transition-epic hover:shadow-lg"
                         onClick={() => handleAddObject(weapon)}
                       >
-                        <div className="flex items-center gap-2">
-                          <div className="w-8 h-8 bg-primary/20 rounded flex items-center justify-center">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-gradient-primary rounded-lg flex items-center justify-center shadow-glow group-hover:scale-110 transition-epic">
                             ⚔️
                           </div>
-                          <div>
-                            <div className="text-sm font-medium text-foreground">{weapon.name}</div>
+                          <div className="flex-1 min-w-0">
+                            <div className="text-sm font-bold text-foreground truncate">{weapon.name}</div>
                             <div className="text-xs text-muted-foreground">
-                              Dano: {weapon.damage} {weapon.range && `• Alcance: ${weapon.range}`}
-                              {weapon.special && `• ${weapon.special}`}
+                              💥 {weapon.damage} {weapon.range && `• 🎯 ${weapon.range}`}
+                              {weapon.special && `• ✨ ${weapon.special}`}
                             </div>
                           </div>
                         </div>
@@ -308,22 +351,22 @@ export const Map2D = ({ role }: Map2DProps) => {
                     ))}
                   </TabsContent>
 
-                  <TabsContent value="armor" className="space-y-2">
+                  <TabsContent value="armor" className="space-y-3 max-h-80 overflow-y-auto">
                     {gameAssets.armor.map((armor) => (
                       <div
                         key={armor.id}
-                        className="p-2 border border-border rounded cursor-pointer hover:bg-muted/50 transition-colors"
+                        className="group p-3 border border-border rounded-lg cursor-pointer hover:bg-secondary/10 hover:border-secondary/50 transition-epic hover:shadow-lg"
                         onClick={() => handleAddObject(armor)}
                       >
-                        <div className="flex items-center gap-2">
-                          <div className="w-8 h-8 bg-blue-500/20 rounded flex items-center justify-center">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-secondary/30 rounded-lg flex items-center justify-center group-hover:scale-110 transition-epic">
                             🛡️
                           </div>
-                          <div>
-                            <div className="text-sm font-medium text-foreground">{armor.name}</div>
+                          <div className="flex-1 min-w-0">
+                            <div className="text-sm font-bold text-foreground truncate">{armor.name}</div>
                             <div className="text-xs text-muted-foreground">
-                              Defesa: {armor.defense} • {armor.weight}
-                              {armor.magic && ` • Magia: ${armor.magic}`}
+                              🛡️ {armor.defense} • ⚖️ {armor.weight}
+                              {armor.magic && ` • ✨ ${armor.magic}`}
                             </div>
                           </div>
                         </div>
@@ -331,22 +374,22 @@ export const Map2D = ({ role }: Map2DProps) => {
                     ))}
                   </TabsContent>
 
-                  <TabsContent value="tools" className="space-y-2">
+                  <TabsContent value="tools" className="space-y-3 max-h-80 overflow-y-auto">
                     {gameAssets.tools.map((tool) => (
                       <div
                         key={tool.id}
-                        className="p-2 border border-border rounded cursor-pointer hover:bg-muted/50 transition-colors"
+                        className="group p-3 border border-border rounded-lg cursor-pointer hover:bg-accent/10 hover:border-accent/50 transition-epic hover:shadow-lg"
                         onClick={() => handleAddObject(tool)}
                       >
-                        <div className="flex items-center gap-2">
-                          <div className="w-8 h-8 bg-yellow-500/20 rounded flex items-center justify-center">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-accent/30 rounded-lg flex items-center justify-center group-hover:scale-110 transition-epic">
                             🔧
                           </div>
-                          <div>
-                            <div className="text-sm font-medium text-foreground">{tool.name}</div>
+                          <div className="flex-1 min-w-0">
+                            <div className="text-sm font-bold text-foreground truncate">{tool.name}</div>
                             <div className="text-xs text-muted-foreground">
-                              {tool.use} {tool.durability && `• Durabilidade: ${tool.durability}`}
-                              {tool.weight && `• ${tool.weight}`} {tool.fuel && `• ${tool.fuel}`}
+                              🎯 {tool.use} {tool.durability && `• 🔄 ${tool.durability}`}
+                              {tool.weight && `• ⚖️ ${tool.weight}`} {tool.fuel && `• ⛽ ${tool.fuel}`}
                             </div>
                           </div>
                         </div>
@@ -354,21 +397,21 @@ export const Map2D = ({ role }: Map2DProps) => {
                     ))}
                   </TabsContent>
 
-                  <TabsContent value="monsters" className="space-y-2">
+                  <TabsContent value="monsters" className="space-y-3 max-h-80 overflow-y-auto">
                     {gameAssets.monsters.map((monster) => (
                       <div
                         key={monster.id}
-                        className="p-2 border border-border rounded cursor-pointer hover:bg-muted/50 transition-colors"
+                        className="group p-3 border border-border rounded-lg cursor-pointer hover:bg-destructive/10 hover:border-destructive/50 transition-epic hover:shadow-lg"
                         onClick={() => handleAddObject(monster)}
                       >
-                        <div className="flex items-center gap-2">
-                          <div className="w-8 h-8 bg-red-500/20 rounded flex items-center justify-center">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-destructive/30 rounded-lg flex items-center justify-center group-hover:scale-110 transition-epic">
                             👹
                           </div>
-                          <div>
-                            <div className="text-sm font-medium text-foreground">{monster.name}</div>
+                          <div className="flex-1 min-w-0">
+                            <div className="text-sm font-bold text-foreground truncate">{monster.name}</div>
                             <div className="text-xs text-muted-foreground">
-                              HP: {monster.hp} • Level: {monster.level} • Ataque: {monster.attack}
+                              ❤️ {monster.hp} • 🎚️ {monster.level} • ⚔️ {monster.attack}
                             </div>
                           </div>
                         </div>
@@ -376,21 +419,21 @@ export const Map2D = ({ role }: Map2DProps) => {
                     ))}
                   </TabsContent>
 
-                  <TabsContent value="npcs" className="space-y-2">
+                  <TabsContent value="npcs" className="space-y-3 max-h-80 overflow-y-auto">
                     {gameAssets.npcs.map((npc) => (
                       <div
                         key={npc.id}
-                        className="p-2 border border-border rounded cursor-pointer hover:bg-muted/50 transition-colors"
+                        className="group p-3 border border-border rounded-lg cursor-pointer hover:bg-magic-water/10 hover:border-magic-water/50 transition-epic hover:shadow-lg"
                         onClick={() => handleAddObject(npc)}
                       >
-                        <div className="flex items-center gap-2">
-                          <div className="w-8 h-8 bg-accent/20 rounded flex items-center justify-center">
-                            👤
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-magic-water/30 rounded-lg flex items-center justify-center group-hover:scale-110 transition-epic">
+                            🧙
                           </div>
-                          <div>
-                            <div className="text-sm font-medium text-foreground">{npc.name}</div>
+                          <div className="flex-1 min-w-0">
+                            <div className="text-sm font-bold text-foreground truncate">{npc.name}</div>
                             <div className="text-xs text-muted-foreground">
-                              HP: {npc.hp} • Level: {npc.level}
+                              ❤️ {npc.hp} • 🎚️ {npc.level}
                             </div>
                           </div>
                         </div>
@@ -398,21 +441,22 @@ export const Map2D = ({ role }: Map2DProps) => {
                     ))}
                   </TabsContent>
 
-                  <TabsContent value="objects" className="space-y-2">
+                  <TabsContent value="objects" className="space-y-3 max-h-80 overflow-y-auto">
                     {gameAssets.objects.map((object) => (
                       <div
                         key={object.id}
-                        className="p-2 border border-border rounded cursor-pointer hover:bg-muted/50 transition-colors"
+                        className="group p-3 border border-border rounded-lg cursor-pointer hover:bg-magic-earth/10 hover:border-magic-earth/50 transition-epic hover:shadow-lg"
                         onClick={() => handleAddObject(object)}
                       >
-                        <div className="flex items-center gap-2">
-                          <div className="w-8 h-8 bg-secondary/20 rounded flex items-center justify-center">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-magic-earth/30 rounded-lg flex items-center justify-center group-hover:scale-110 transition-epic">
                             📦
                           </div>
-                          <div>
-                            <div className="text-sm font-medium text-foreground">{object.name}</div>
+                          <div className="flex-1 min-w-0">
+                            <div className="text-sm font-bold text-foreground truncate">{object.name}</div>
                             <div className="text-xs text-muted-foreground">
-                              {object.interactive && "Interativo"} {object.light && "• Fonte de luz"}
+                              {object.interactive ? '🎮 Interativo' : '🎨 Decorativo'}
+                              {object.light && ' • 💡 Ilumina'}
                             </div>
                           </div>
                         </div>
