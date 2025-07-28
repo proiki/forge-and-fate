@@ -16,6 +16,7 @@ import {
   User,
   ArrowLeft 
 } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
 import heroImage from "@/assets/hero-banner.jpg";
 
 interface LoginProps {
@@ -33,59 +34,57 @@ export const Login = ({ onLogin, onBack }: LoginProps) => {
     confirmPassword: "",
     role: 'player' as 'gm' | 'player'
   });
-  const [isLoading, setIsLoading] = useState(false);
+  
+  const { login, register, loading } = useAuth();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
 
-    // Simulate login API call
-    setTimeout(() => {
-      if (loginData.email && loginData.password) {
-        const mockUser = {
-          role: loginData.email.includes('gm') ? 'gm' as const : 'player' as const,
-          email: loginData.email,
-          name: loginData.email.split('@')[0]
-        };
-        
-        toast.success(`Bem-vindo de volta, ${mockUser.name}!`);
-        onLogin(mockUser);
-      } else {
-        toast.error("Por favor, preencha todos os campos!");
-      }
-      setIsLoading(false);
-    }, 1000);
+    if (!loginData.email || !loginData.password) {
+      toast.error("Por favor, preencha todos os campos!");
+      return;
+    }
+
+    const success = await login(loginData.email, loginData.password);
+    if (success) {
+      // O useAuth já gerencia o estado do usuário
+      // Apenas chama onLogin para notificar o componente pai
+      onLogin({
+        role: 'player', // Será atualizado pelo contexto
+        email: loginData.email,
+        name: loginData.email.split('@')[0]
+      });
+    }
   };
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
 
     // Validate form
     if (registerData.password !== registerData.confirmPassword) {
       toast.error("As senhas não coincidem!");
-      setIsLoading(false);
       return;
     }
 
     if (!registerData.name || !registerData.email || !registerData.password) {
       toast.error("Por favor, preencha todos os campos!");
-      setIsLoading(false);
       return;
     }
 
-    // Simulate register API call
-    setTimeout(() => {
-      const newUser = {
+    const success = await register(
+      registerData.name,
+      registerData.email,
+      registerData.password,
+      registerData.role
+    );
+    
+    if (success) {
+      onLogin({
         role: registerData.role,
         email: registerData.email,
         name: registerData.name
-      };
-      
-      toast.success(`Conta criada com sucesso! Bem-vindo, ${newUser.name}!`);
-      onLogin(newUser);
-      setIsLoading(false);
-    }, 1000);
+      });
+    }
   };
 
   return (
@@ -197,17 +196,12 @@ export const Login = ({ onLogin, onBack }: LoginProps) => {
                       variant="hero" 
                       size="lg" 
                       className="w-full"
-                      disabled={isLoading}
+                      disabled={loading}
                     >
-                      {isLoading ? "Entrando..." : "Entrar na Aventura"}
+                      {loading ? "Entrando..." : "Entrar na Aventura"}
                       <LogIn className="w-4 h-4 ml-2" />
                     </Button>
 
-                    <div className="text-center text-sm text-muted-foreground">
-                      <p>Contas de teste:</p>
-                      <p>GM: gm@teste.com | Jogador: player@teste.com</p>
-                      <p>Senha: qualquer coisa</p>
-                    </div>
                   </form>
                 </TabsContent>
 
@@ -307,9 +301,9 @@ export const Login = ({ onLogin, onBack }: LoginProps) => {
                       variant="hero" 
                       size="lg" 
                       className="w-full"
-                      disabled={isLoading}
+                      disabled={loading}
                     >
-                      {isLoading ? "Criando conta..." : "Iniciar Jornada"}
+                      {loading ? "Criando conta..." : "Iniciar Jornada"}
                       <UserPlus className="w-4 h-4 ml-2" />
                     </Button>
                   </form>
@@ -318,8 +312,7 @@ export const Login = ({ onLogin, onBack }: LoginProps) => {
 
               <div className="mt-6 text-center text-xs text-muted-foreground">
                 <p>
-                  🔒 Esta é uma versão demo. Para funcionalidade completa de login/cadastro,
-                  conecte o projeto ao Supabase.
+                  🔒 Sistema de autenticação seguro com Supabase.
                 </p>
               </div>
             </CardContent>

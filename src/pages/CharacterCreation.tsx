@@ -236,3 +236,5 @@ export const CharacterCreation = ({ onBack, onCharacterCreated }: CharacterCreat
     </div>
   );
 };
+
+export default CharacterCreation;

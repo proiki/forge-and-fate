@@ -1,33 +1,199 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Crown, Users, Dice6, MapPin } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import { Crown, Users, Dice6, MapPin, Plus, LogOut, UserCheck, UserX, Clock } from "lucide-react";
 import { toast } from "sonner";
+import { useAuth } from "@/hooks/useAuth";
+import { useNavigate } from "react-router-dom";
 import heroBanner from "@/assets/hero-banner.jpg";
 
-interface GameSelectionProps {
-  onSelectRole: (role: 'gm' | 'player', roomCode?: string) => void;
+interface User {
+  role: 'gm' | 'player';
+  email: string;
+  name: string;
 }
 
-export const GameSelection = ({ onSelectRole }: GameSelectionProps) => {
+interface GameSelectionProps {
+  user: User;
+  onLogout: () => void;
+}
+
+interface Game {
+  id: number;
+  title: string;
+  description: string;
+  gm_name: string;
+  max_players: number;
+  current_players: number;
+  game_code: string;
+  created_at: string;
+}
+
+interface GameRequest {
+  id: number;
+  game_id: number;
+  player_name: string;
+  player_email: string;
+  status: 'pending' | 'approved' | 'rejected';
+  message: string;
+  created_at: string;
+}
+
+export default function GameSelection({ user, onLogout }: GameSelectionProps) {
+  const [games, setGames] = useState<Game[]>([]);
+  const [requests, setRequests] = useState<GameRequest[]>([]);
   const [roomCode, setRoomCode] = useState("");
   const [showJoinForm, setShowJoinForm] = useState(false);
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [newGame, setNewGame] = useState({
+    title: "",
+    description: "",
+    max_players: 6
+  });
+  const [joinMessage, setJoinMessage] = useState("");
+  const [loading, setLoading] = useState(false);
+  
+  const { session, logout } = useAuth();
+  const navigate = useNavigate();
 
-  const handleCreateRoom = () => {
-    const code = Math.random().toString(36).substring(2, 8).toUpperCase();
-    toast.success(`Mesa criada! Código: ${code}`);
-    onSelectRole('gm', code);
+  useEffect(() => {
+    loadGames();
+    if (user.role === 'gm') {
+      loadRequests();
+    }
+  }, [user.role]);
+
+  const apiCall = async (url: string, options: RequestInit = {}) => {
+    const headers = {
+      'Content-Type': 'application/json',
+      ...(session && { 'Authorization': `Bearer ${session.access_token}` }),
+      ...options.headers,
+    };
+
+    const response = await fetch(url, {
+      ...options,
+      headers,
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Erro na requisição');
+    }
+
+    return response.json();
   };
 
-  const handleJoinRoom = () => {
+  const loadGames = async () => {
+    try {
+      const data = await apiCall('/api/games');
+      setGames(data.games);
+    } catch (error) {
+      console.error('Erro ao carregar jogos:', error);
+    }
+  };
+
+  const loadRequests = async () => {
+    try {
+      // Para cada jogo do GM, buscar as solicitações
+      const gameRequests: GameRequest[] = [];
+      for (const game of games) {
+        try {
+          const data = await apiCall(`/api/games/${game.id}/requests`);
+          gameRequests.push(...data.requests);
+        } catch (error) {
+          console.error(`Erro ao carregar solicitações do jogo ${game.id}:`, error);
+        }
+      }
+      setRequests(gameRequests);
+    } catch (error) {
+      console.error('Erro ao carregar solicitações:', error);
+    }
+  };
+
+  const handleCreateGame = async () => {
+    if (!newGame.title.trim()) {
+      toast.error("Título é obrigatório!");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const data = await apiCall('/api/games', {
+        method: 'POST',
+        body: JSON.stringify(newGame),
+      });
+
+      toast.success(`Mesa criada! Código: ${data.game.game_code}`);
+      setShowCreateForm(false);
+      setNewGame({ title: "", description: "", max_players: 6 });
+      loadGames();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Erro ao criar jogo');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleJoinGame = async () => {
     if (!roomCode.trim()) {
       toast.error("Digite um código válido!");
       return;
     }
-    toast.success(`Entrando na mesa: ${roomCode}`);
-    onSelectRole('player', roomCode);
+
+    setLoading(true);
+    try {
+      await apiCall('/api/games/join', {
+        method: 'POST',
+        body: JSON.stringify({
+          game_code: roomCode.toUpperCase(),
+          message: joinMessage
+        }),
+      });
+
+      toast.success("Solicitação enviada! Aguarde a aprovação do mestre.");
+      setShowJoinForm(false);
+      setRoomCode("");
+      setJoinMessage("");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Erro ao solicitar participação');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRequestAction = async (requestId: number, action: 'approve' | 'reject') => {
+    setLoading(true);
+    try {
+      const request = requests.find(r => r.id === requestId);
+      if (!request) return;
+
+      await apiCall(`/api/games/${request.game_id}/requests/${requestId}`, {
+        method: 'PUT',
+        body: JSON.stringify({ action }),
+      });
+
+      toast.success(`Solicitação ${action === 'approve' ? 'aprovada' : 'rejeitada'}!`);
+      loadRequests();
+      loadGames();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Erro ao processar solicitação');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleLogout = async () => {
+    await logout();
+    onLogout();
+  };
+
+  const enterGame = (gameId: number) => {
+    navigate(`/game/${gameId}`);
   };
 
   return (
@@ -48,158 +214,267 @@ export const GameSelection = ({ onSelectRole }: GameSelectionProps) => {
 
       <div className="relative z-10 container mx-auto px-4 py-8">
         {/* Header */}
-        <div className="text-center mb-12">
-          <h1 className="text-6xl md:text-8xl font-bold bg-gradient-primary bg-clip-text text-transparent mb-4 animate-glow-pulse">
-            Forge & Fate
-          </h1>
-          <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-            Entre no mundo épico dos RPGs online. Crie lendas, forje destinos e viva aventuras inesquecíveis.
-          </p>
+        <div className="flex justify-between items-center mb-8">
+          <div>
+            <h1 className="text-4xl font-bold text-white mb-2">
+              Bem-vindo, {user.name}!
+            </h1>
+            <div className="flex items-center gap-2">
+              {user.role === 'gm' ? (
+                <Badge className="bg-primary text-primary-foreground">
+                  <Crown className="w-4 h-4 mr-1" />
+                  Mestre
+                </Badge>
+              ) : (
+                <Badge className="bg-accent text-accent-foreground">
+                  <Users className="w-4 h-4 mr-1" />
+                  Aventureiro
+                </Badge>
+              )}
+            </div>
+          </div>
+          <Button variant="outline" onClick={handleLogout}>
+            <LogOut className="w-4 h-4 mr-2" />
+            Sair
+          </Button>
         </div>
 
-        {/* Role Selection */}
-        <div className="max-w-4xl mx-auto">
-          <h2 className="text-3xl font-bold text-center text-foreground mb-8">
-            Escolha seu Destino
-          </h2>
-          
-          <div className="grid md:grid-cols-2 gap-8 mb-12">
-            {/* Game Master Card */}
-            <Card className="bg-gradient-card border-primary/30 shadow-epic hover:shadow-glow transition-all duration-500 group cursor-pointer">
-              <CardHeader className="text-center pb-4">
-                <div className="mx-auto w-20 h-20 bg-gradient-primary rounded-full flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300">
-                  <Crown className="w-10 h-10 text-primary-foreground" />
-                </div>
-                <CardTitle className="text-2xl text-foreground">Mestre da Mesa</CardTitle>
-                <p className="text-muted-foreground">Conduza épicas aventuras e crie mundos fantásticos</p>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-3 text-sm text-muted-foreground">
-                  <div className="flex items-center gap-2">
-                    <MapPin className="w-4 h-4 text-primary" />
-                    <span>Crie mapas 2D e 3D personalizados</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Users className="w-4 h-4 text-primary" />
-                    <span>Controle NPCs, monstros e cenários</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Dice6 className="w-4 h-4 text-primary" />
-                    <span>Sistema avançado de dados e regras</span>
-                  </div>
-                </div>
-                <Button 
-                  variant="hero" 
-                  size="xl" 
-                  className="w-full"
-                  onClick={handleCreateRoom}
-                >
-                  <Crown className="w-5 h-5 mr-2" />
-                  Criar Mesa
-                </Button>
-              </CardContent>
-            </Card>
+        <div className="grid lg:grid-cols-3 gap-8">
+          {/* Main Actions */}
+          <div className="lg:col-span-2 space-y-6">
+            {user.role === 'gm' ? (
+              <Card className="bg-gradient-card border-primary/30 shadow-2xl backdrop-blur-sm">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Crown className="w-5 h-5" />
+                    Suas Mesas
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <Dialog open={showCreateForm} onOpenChange={setShowCreateForm}>
+                    <DialogTrigger asChild>
+                      <Button variant="hero" size="lg" className="w-full">
+                        <Plus className="w-4 h-4 mr-2" />
+                        Criar Nova Mesa
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Criar Nova Mesa</DialogTitle>
+                      </DialogHeader>
+                      <div className="space-y-4">
+                        <div>
+                          <Label htmlFor="title">Título da Mesa</Label>
+                          <Input
+                            id="title"
+                            value={newGame.title}
+                            onChange={(e) => setNewGame(prev => ({ ...prev, title: e.target.value }))}
+                            placeholder="Ex: Aventuras em Faerûn"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="description">Descrição</Label>
+                          <Textarea
+                            id="description"
+                            value={newGame.description}
+                            onChange={(e) => setNewGame(prev => ({ ...prev, description: e.target.value }))}
+                            placeholder="Descreva sua campanha..."
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="max_players">Máximo de Jogadores</Label>
+                          <Input
+                            id="max_players"
+                            type="number"
+                            min="1"
+                            max="10"
+                            value={newGame.max_players}
+                            onChange={(e) => setNewGame(prev => ({ ...prev, max_players: parseInt(e.target.value) || 6 }))}
+                          />
+                        </div>
+                        <Button onClick={handleCreateGame} disabled={loading} className="w-full">
+                          {loading ? "Criando..." : "Criar Mesa"}
+                        </Button>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
 
-            {/* Player Card */}
-            <Card className="bg-gradient-card border-primary/30 shadow-epic hover:shadow-glow transition-all duration-500 group cursor-pointer">
-              <CardHeader className="text-center pb-4">
-                <div className="mx-auto w-20 h-20 bg-gradient-magic rounded-full flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300">
-                  <Users className="w-10 h-10 text-white" />
-                </div>
-                <CardTitle className="text-2xl text-foreground">Jogador</CardTitle>
-                <p className="text-muted-foreground">Viva aventuras épicas com personagens únicos</p>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-3 text-sm text-muted-foreground">
-                  <div className="flex items-center gap-2">
-                    <Users className="w-4 h-4 text-primary" />
-                    <span>Múltiplos personagens personalizados</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Dice6 className="w-4 h-4 text-primary" />
-                    <span>Sistema de cartas e habilidades</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <MapPin className="w-4 h-4 text-primary" />
-                    <span>Explore mundos épicos</span>
-                  </div>
-                </div>
-                {!showJoinForm ? (
-                  <Button 
-                    variant="magic" 
-                    size="xl" 
-                    className="w-full"
-                    onClick={() => setShowJoinForm(true)}
-                  >
-                    <Users className="w-5 h-5 mr-2" />
-                    Entrar em Mesa
-                  </Button>
-                ) : (
-                  <div className="space-y-3">
-                    <div>
-                      <Label htmlFor="roomCode" className="text-foreground">Código da Mesa</Label>
-                      <Input
-                        id="roomCode"
-                        placeholder="Digite o código da mesa..."
-                        value={roomCode}
-                        onChange={(e) => setRoomCode(e.target.value.toUpperCase())}
-                        className="bg-muted border-primary/30 focus:border-primary"
-                      />
-                    </div>
-                    <div className="flex gap-2">
-                      <Button 
-                        variant="magic" 
-                        onClick={handleJoinRoom}
-                        className="flex-1"
-                      >
-                        Entrar
+                  {games.map((game) => (
+                    <Card key={game.id} className="border-primary/20">
+                      <CardContent className="p-4">
+                        <div className="flex justify-between items-start mb-2">
+                          <h3 className="font-semibold">{game.title}</h3>
+                          <Badge variant="outline">
+                            Código: {game.game_code}
+                          </Badge>
+                        </div>
+                        <p className="text-sm text-muted-foreground mb-2">{game.description}</p>
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm">
+                            {game.current_players}/{game.max_players} jogadores
+                          </span>
+                          <Button size="sm" onClick={() => enterGame(game.id)}>
+                            <MapPin className="w-4 h-4 mr-1" />
+                            Entrar
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </CardContent>
+              </Card>
+            ) : (
+              <Card className="bg-gradient-card border-primary/30 shadow-2xl backdrop-blur-sm">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Users className="w-5 h-5" />
+                    Suas Aventuras
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <Dialog open={showJoinForm} onOpenChange={setShowJoinForm}>
+                    <DialogTrigger asChild>
+                      <Button variant="hero" size="lg" className="w-full">
+                        <Dice6 className="w-4 h-4 mr-2" />
+                        Solicitar Participação
                       </Button>
-                      <Button 
-                        variant="outline" 
-                        onClick={() => setShowJoinForm(false)}
-                      >
-                        Cancelar
-                      </Button>
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Solicitar Participação</DialogTitle>
+                      </DialogHeader>
+                      <div className="space-y-4">
+                        <div>
+                          <Label htmlFor="roomCode">Código da Mesa</Label>
+                          <Input
+                            id="roomCode"
+                            value={roomCode}
+                            onChange={(e) => setRoomCode(e.target.value.toUpperCase())}
+                            placeholder="Digite o código da mesa"
+                            maxLength={6}
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="message">Mensagem para o Mestre (opcional)</Label>
+                          <Textarea
+                            id="message"
+                            value={joinMessage}
+                            onChange={(e) => setJoinMessage(e.target.value)}
+                            placeholder="Conte um pouco sobre você ou seu personagem..."
+                          />
+                        </div>
+                        <Button onClick={handleJoinGame} disabled={loading} className="w-full">
+                          {loading ? "Enviando..." : "Enviar Solicitação"}
+                        </Button>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+
+                  {games.map((game) => (
+                    <Card key={game.id} className="border-primary/20">
+                      <CardContent className="p-4">
+                        <div className="flex justify-between items-start mb-2">
+                          <h3 className="font-semibold">{game.title}</h3>
+                          <Badge variant="outline">
+                            Mestre: {game.gm_name}
+                          </Badge>
+                        </div>
+                        <p className="text-sm text-muted-foreground mb-2">{game.description}</p>
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm">
+                            {game.current_players}/{game.max_players} jogadores
+                          </span>
+                          <Button size="sm" onClick={() => enterGame(game.id)}>
+                            <MapPin className="w-4 h-4 mr-1" />
+                            Entrar
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </CardContent>
+              </Card>
+            )}
           </div>
 
-          {/* Features Preview */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 opacity-80">
-            <div className="text-center p-4">
-              <div className="w-12 h-12 bg-magic-fire/20 rounded-lg flex items-center justify-center mx-auto mb-2">
-                <Dice6 className="w-6 h-6 text-magic-fire" />
-              </div>
-              <h3 className="font-semibold text-foreground">Sistema de Dados</h3>
-              <p className="text-xs text-muted-foreground">D4 até D100</p>
-            </div>
-            <div className="text-center p-4">
-              <div className="w-12 h-12 bg-magic-water/20 rounded-lg flex items-center justify-center mx-auto mb-2">
-                <MapPin className="w-6 h-6 text-magic-water" />
-              </div>
-              <h3 className="font-semibold text-foreground">Mapas Dinâmicos</h3>
-              <p className="text-xs text-muted-foreground">2D e 3D</p>
-            </div>
-            <div className="text-center p-4">
-              <div className="w-12 h-12 bg-magic-earth/20 rounded-lg flex items-center justify-center mx-auto mb-2">
-                <Users className="w-6 h-6 text-magic-earth" />
-              </div>
-              <h3 className="font-semibold text-foreground">Multiplayer</h3>
-              <p className="text-xs text-muted-foreground">Até 1000 elementos</p>
-            </div>
-            <div className="text-center p-4">
-              <div className="w-12 h-12 bg-primary/20 rounded-lg flex items-center justify-center mx-auto mb-2">
-                <Crown className="w-6 h-6 text-primary" />
-              </div>
-              <h3 className="font-semibold text-foreground">Sistema Épico</h3>
-              <p className="text-xs text-muted-foreground">Cartas e evoluções</p>
-            </div>
+          {/* Sidebar */}
+          <div className="space-y-6">
+            {user.role === 'gm' && (
+              <Card className="bg-gradient-card border-primary/30 shadow-2xl backdrop-blur-sm">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Clock className="w-5 h-5" />
+                    Solicitações Pendentes
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {requests.filter(r => r.status === 'pending').map((request) => (
+                    <Card key={request.id} className="border-yellow-500/30">
+                      <CardContent className="p-3">
+                        <div className="flex justify-between items-start mb-2">
+                          <div>
+                            <p className="font-medium text-sm">{request.player_name}</p>
+                            <p className="text-xs text-muted-foreground">{request.player_email}</p>
+                          </div>
+                        </div>
+                        {request.message && (
+                          <p className="text-xs text-muted-foreground mb-2">"{request.message}"</p>
+                        )}
+                        <div className="flex gap-2">
+                          <Button 
+                            size="sm" 
+                            variant="default"
+                            onClick={() => handleRequestAction(request.id, 'approve')}
+                            disabled={loading}
+                          >
+                            <UserCheck className="w-3 h-3 mr-1" />
+                            Aprovar
+                          </Button>
+                          <Button 
+                            size="sm" 
+                            variant="destructive"
+                            onClick={() => handleRequestAction(request.id, 'reject')}
+                            disabled={loading}
+                          >
+                            <UserX className="w-3 h-3 mr-1" />
+                            Rejeitar
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                  {requests.filter(r => r.status === 'pending').length === 0 && (
+                    <p className="text-sm text-muted-foreground text-center py-4">
+                      Nenhuma solicitação pendente
+                    </p>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
+            <Card className="bg-gradient-card border-primary/30 shadow-2xl backdrop-blur-sm">
+              <CardHeader>
+                <CardTitle>Estatísticas</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-sm">Mesas ativas:</span>
+                    <span className="font-medium">{games.length}</span>
+                  </div>
+                  {user.role === 'gm' && (
+                    <div className="flex justify-between">
+                      <span className="text-sm">Solicitações:</span>
+                      <span className="font-medium">{requests.filter(r => r.status === 'pending').length}</span>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
           </div>
         </div>
       </div>
     </div>
   );
-};
+}
+
