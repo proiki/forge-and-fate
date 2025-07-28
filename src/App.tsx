@@ -4,7 +4,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { AuthProvider, useAuth } from "@/hooks/useAuth";
+import { AuthProvider, useAuth, User } from "@/hooks/useAuth";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import Index from "./pages/Index";
 import { Login } from "./pages/Login";
@@ -16,31 +16,12 @@ import "./App.css";
 
 const queryClient = new QueryClient();
 
-type User = {
-  role: 'gm' | 'player';
-  email: string;
-  name: string;
-};
 
 function AppContent() {
   const { user, loading, logout } = useAuth();
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
-
-  useEffect(() => {
-    if (user) {
-      setCurrentUser({
-        role: user.role,
-        email: user.email,
-        name: user.name
-      });
-    } else {
-      setCurrentUser(null);
-    }
-  }, [user]);
 
   const handleLogout = async () => {
     await logout();
-    setCurrentUser(null);
   };
 
   if (loading) {
@@ -58,18 +39,16 @@ function AppContent() {
         <Route 
           path="/login" 
           element={
-            currentUser ? 
+            user ? 
             <Navigate to="/game-selection" /> : 
-            <Login onLogin={setCurrentUser} />
+            <Login />
           } 
         />
         <Route 
           path="/game-selection" 
           element={
             <ProtectedRoute>
-              {currentUser && (
-                <GameSelection user={currentUser} onLogout={handleLogout} />
-              )}
+              <GameSelection user={user!} onLogout={handleLogout} />
             </ProtectedRoute>
           } 
         />
@@ -77,9 +56,7 @@ function AppContent() {
           path="/game/:gameId" 
           element={
             <ProtectedRoute>
-              {currentUser && (
-                <GameDashboard user={currentUser} />
-              )}
+              <GameDashboard user={user!} />
             </ProtectedRoute>
           } 
         />
@@ -87,9 +64,7 @@ function AppContent() {
           path="/character-creation" 
           element={
             <ProtectedRoute requireRole="player">
-              {currentUser && (
-                <CharacterCreation user={currentUser} />
-              )}
+              <CharacterCreation user={user!} />
             </ProtectedRoute>
           } 
         />

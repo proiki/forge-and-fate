@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Canvas as FabricCanvas, Rect, Circle } from "fabric";
+import { fabric } from "fabric";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -78,7 +78,7 @@ const gameAssets = {
 
 export const Map2D = ({ role }: Map2DProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [fabricCanvas, setFabricCanvas] = useState<FabricCanvas | null>(null);
+  const [fabricCanvas, setFabricCanvas] = useState<fabric.Canvas | null>(null);
   const [selectedMap, setSelectedMap] = useState(mapTemplates[0]);
   const [selectedTool, setSelectedTool] = useState<'select' | 'move' | 'add'>('select');
   const [placedObjects, setPlacedObjects] = useState<any[]>([]);
@@ -90,7 +90,7 @@ export const Map2D = ({ role }: Map2DProps) => {
   useEffect(() => {
     if (!canvasRef.current) return;
 
-    const canvas = new FabricCanvas(canvasRef.current, {
+    const canvas = new fabric.Canvas(canvasRef.current, {
       width: 800,
       height: 600,
       backgroundColor: "#2a2a2a",
@@ -103,7 +103,7 @@ export const Map2D = ({ role }: Map2DProps) => {
 
     // Add player positions
     playerPositions.forEach(player => {
-      const playerToken = new Circle({
+      const playerToken = new fabric.Circle({
         left: player.x,
         top: player.y,
         radius: 15,
@@ -135,7 +135,7 @@ export const Map2D = ({ role }: Map2DProps) => {
   const handleAddObject = (asset: any) => {
     if (!fabricCanvas) return;
 
-    const object = new Rect({
+    const object = new fabric.Rect({
       left: Math.random() * 600 + 100,
       top: Math.random() * 400 + 100,
       width: 40,

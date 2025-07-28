@@ -17,14 +17,11 @@ import {
   ArrowLeft 
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { useNavigate } from "react-router-dom";
 import heroImage from "@/assets/hero-banner.jpg";
 
-interface LoginProps {
-  onLogin: (user: { role: 'gm' | 'player', email: string, name: string }) => void;
-  onBack?: () => void;
-}
-
-export const Login = ({ onLogin, onBack }: LoginProps) => {
+export const Login = () => {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("login");
   const [loginData, setLoginData] = useState({ email: "", password: "" });
   const [registerData, setRegisterData] = useState({ 
@@ -47,13 +44,7 @@ export const Login = ({ onLogin, onBack }: LoginProps) => {
 
     const success = await login(loginData.email, loginData.password);
     if (success) {
-      // O useAuth já gerencia o estado do usuário
-      // Apenas chama onLogin para notificar o componente pai
-      onLogin({
-        role: 'player', // Será atualizado pelo contexto
-        email: loginData.email,
-        name: loginData.email.split('@')[0]
-      });
+      navigate('/game-selection');
     }
   };
 
@@ -79,11 +70,7 @@ export const Login = ({ onLogin, onBack }: LoginProps) => {
     );
     
     if (success) {
-      onLogin({
-        role: registerData.role,
-        email: registerData.email,
-        name: registerData.name
-      });
+      navigate('/game-selection');
     }
   };
 
@@ -122,16 +109,14 @@ export const Login = ({ onLogin, onBack }: LoginProps) => {
 
         {/* Right Side - Login/Register Form */}
         <div className="w-full max-w-md mx-auto lg:mx-0">
-          {onBack && (
-            <Button 
-              variant="ghost" 
-              className="mb-4"
-              onClick={onBack}
-            >
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Voltar
-            </Button>
-          )}
+          <Button 
+            variant="ghost" 
+            className="mb-4"
+            onClick={() => navigate('/')}
+          >
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Voltar
+          </Button>
 
           <Card className="bg-gradient-card border-primary/30 shadow-2xl backdrop-blur-sm">
             <CardHeader className="text-center">

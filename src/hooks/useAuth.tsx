@@ -1,6 +1,18 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
-import { User, AuthSession } from '@/lib/supabase'
+import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
+
+export type User = {
+  id: string
+  email: string
+  name: string
+  role: 'gm' | 'player'
+}
+
+export type AuthSession = {
+  access_token: string
+  refresh_token: string
+}
 
 interface AuthContextType {
   user: User | null
@@ -39,30 +51,48 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       setLoading(true)
       
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, password }),
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
       })
 
-      const data = await response.json()
-
-      if (response.ok) {
-        setUser(data.user)
-        setSession(data.session)
-        
-        // Salva no localStorage
-        localStorage.setItem('auth_user', JSON.stringify(data.user))
-        localStorage.setItem('auth_session', JSON.stringify(data.session))
-        
-        toast.success(`Bem-vindo de volta, ${data.user.name}!`)
-        return true
-      } else {
-        toast.error(data.error || 'Erro ao fazer login')
+      if (error) {
+        toast.error(error.message || 'Erro ao fazer login')
         return false
       }
+
+      if (data.user && data.session) {
+        // Buscar dados do perfil do usuário
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('name, role')
+          .eq('id', data.user.id)
+          .single()
+
+        const userData: User = {
+          id: data.user.id,
+          email: data.user.email!,
+          name: profile?.name || data.user.email!,
+          role: profile?.role || 'player'
+        }
+
+        const sessionData: AuthSession = {
+          access_token: data.session.access_token,
+          refresh_token: data.session.refresh_token
+        }
+
+        setUser(userData)
+        setSession(sessionData)
+        
+        // Salva no localStorage
+        localStorage.setItem('auth_user', JSON.stringify(userData))
+        localStorage.setItem('auth_session', JSON.stringify(sessionData))
+        
+        toast.success(`Bem-vindo de volta, ${userData.name}!`)
+        return true
+      }
+
+      return false
     } catch (error) {
       toast.error('Erro de conexão')
       return false
@@ -75,30 +105,59 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       setLoading(true)
       
-      const response = await fetch('/api/auth/register', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ name, email, password, role }),
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            name,
+            role
+          }
+        }
       })
 
-      const data = await response.json()
-
-      if (response.ok) {
-        setUser(data.user)
-        setSession(data.session)
-        
-        // Salva no localStorage
-        localStorage.setItem('auth_user', JSON.stringify(data.user))
-        localStorage.setItem('auth_session', JSON.stringify(data.session))
-        
-        toast.success(`Conta criada com sucesso! Bem-vindo, ${data.user.name}!`)
-        return true
-      } else {
-        toast.error(data.error || 'Erro ao criar conta')
+      if (error) {
+        toast.error(error.message || 'Erro ao criar conta')
         return false
       }
+
+      if (data.user && data.session) {
+        // Criar perfil do usuário
+        await supabase
+          .from('profiles')
+          .insert([
+            {
+              id: data.user.id,
+              name,
+              email,
+              role
+            }
+          ])
+
+        const userData: User = {
+          id: data.user.id,
+          email: data.user.email!,
+          name,
+          role
+        }
+
+        const sessionData: AuthSession = {
+          access_token: data.session.access_token,
+          refresh_token: data.session.refresh_token
+        }
+
+        setUser(userData)
+        setSession(sessionData)
+        
+        // Salva no localStorage
+        localStorage.setItem('auth_user', JSON.stringify(userData))
+        localStorage.setItem('auth_session', JSON.stringify(sessionData))
+        
+        toast.success(`Conta criada com sucesso! Bem-vindo, ${userData.name}!`)
+        return true
+      }
+
+      return false
     } catch (error) {
       toast.error('Erro de conexão')
       return false
@@ -109,14 +168,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = async (): Promise<void> => {
     try {
-      if (session) {
-        await fetch('/api/auth/logout', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${session.access_token}`,
-          },
-        })
-      }
+      await supabase.auth.signOut()
     } catch (error) {
       console.error('Erro ao fazer logout:', error)
     } finally {
